@@ -1,66 +1,132 @@
+import pygame
+
 from gameparts import Board
-from gameparts.exceptions import CellOccupiedError, FieldIndexError
+
+pygame.init()
+
+
+CELL_SIZE = 100
+BOARD_SIZE = 3
+WIDTH = HEIGHT = CELL_SIZE * BOARD_SIZE
+LINE_WIDTH = 15
+BG_COLOR = (28, 170, 156)
+LINE_COLOR = (23, 145, 135)
+X_COLOR = (84, 84, 84)
+O_COLOR = (242, 235, 211)
+X_WIDTH = 15
+O_WIDTH = 15
+SPACE = CELL_SIZE // 4
+
+
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption('Tic tac toe')
+screen.fill(BG_COLOR)
+
+
+def draw_lines():
+    for i in range(1, BOARD_SIZE):
+        pygame.draw.line(
+            screen,
+            LINE_COLOR,
+            (0, i * CELL_SIZE),
+            (WIDTH, i * CELL_SIZE),
+            LINE_WIDTH
+        )
+
+    for i in range(1, BOARD_SIZE):
+        pygame.draw.line(
+            screen,
+            LINE_COLOR,
+            (i * CELL_SIZE, 0),
+            (i * CELL_SIZE, HEIGHT),
+            LINE_WIDTH
+        )
+
+
+def draw_figures(board):
+    for row in range(BOARD_SIZE):
+        for col in range(BOARD_SIZE):
+            if board[row][col] == 'X':
+                pygame.draw.line(
+                    screen,
+                    X_COLOR,
+                    (col * CELL_SIZE + SPACE, row * CELL_SIZE + SPACE),
+                    (
+                        col * CELL_SIZE + CELL_SIZE - SPACE,
+                        row * CELL_SIZE + CELL_SIZE - SPACE
+                    ),
+                    X_WIDTH
+                )
+                pygame.draw.line(
+                    screen,
+                    X_COLOR,
+                    (
+                        col * CELL_SIZE + SPACE,
+                        row * CELL_SIZE + CELL_SIZE - SPACE
+                    ),
+                    (
+                        col * CELL_SIZE + CELL_SIZE - SPACE,
+                        row * CELL_SIZE + SPACE
+                    ),
+                    X_WIDTH
+                )
+            elif board[row][col] == 'O':
+                pygame.draw.circle(
+                    screen,
+                    O_COLOR,
+                    (
+                        col * CELL_SIZE + CELL_SIZE // 2,
+                        row * CELL_SIZE + CELL_SIZE // 2
+                    ),
+                    CELL_SIZE // 2 - SPACE,
+                    O_WIDTH
+                )
 
 
 def save_result(result):
-    with open('results.txt', 'a') as file:
-        file.write(result + '\n')
+    with open('results.txt', 'a') as f:
+        f.write(result + '\n')
 
 
 def main():
     game = Board()
     current_player = 'X'
     running = True
-    game.display()
+    draw_lines()
 
     while running:
 
-        print(f'{current_player} makes the move')
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
 
-        while True:
-            try:
-                row = int(input('Enter the line N in the range: 0 - 2: '))
-                if row < 0 or row >= game.field_size:
-                    raise FieldIndexError
-                column = int(input('Enter the column N in the range: 0 - 2: '))
-                if column < 0 or column >= game.field_size:
-                    raise FieldIndexError
-                if game.board[row][column] != ' ':
-                    raise CellOccupiedError
-            except FieldIndexError:
-                print(
-                    'The value must be non-negative and less than '
-                    f'{game.field_size}.'
-                )
-                print('Reenter the row and column values.')
-                continue
-            except ValueError:
-                print('Letters cannot be entered. Only numbers.')
-                print('Reenter the row and column values.')
-                continue
-            except CellOccupiedError:
-                print('Cell is occupied')
-                print('Enter other coordinates.')
-                continue
-            except Exception as e:
-                print(f'An error occurred: {e}')
-            else:
-                break
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_y = event.pos[0]
+                mouse_x = event.pos[1]
 
-        game.make_move(row, column, current_player)
-        game.display()
-        if game.check_win(current_player):
-            result = f'Won: {current_player}!'
-            print(result)
-            save_result(result)
-            running = False
-        elif game.is_board_full():
-            result = 'Draw!'
-            print(result)
-            save_result(result)
-            running = False
+                clicked_row = mouse_x // CELL_SIZE
+                clicked_col = mouse_y // CELL_SIZE
 
-        current_player = '0' if current_player == 'X' else 'X'
+                if game.board[clicked_row][clicked_col] == ' ':
+                    game.make_move(clicked_row, clicked_col, current_player)
+
+                    if game.check_win(current_player):
+                        result = f'Won: {current_player}.'
+                        print(result)
+                        save_result(result)
+                        running = False
+                    elif game.is_board_full():
+                        result = 'Draw!'
+                        print(result)
+                        save_result(result)
+                        running = False
+
+                    current_player = 'O' if current_player == 'X' else 'X'
+                    draw_figures(game.board)
+
+        pygame.display.update()
+
+    pygame.quit()
 
 
 if __name__ == '__main__':
